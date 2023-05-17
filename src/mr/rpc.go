@@ -22,6 +22,13 @@ type ExampleReply struct {
 	Y int
 }
 
+type RegisterArgs struct {
+}
+
+type RegisterReply struct {
+    WorkerId string
+}
+
 // Add your RPC definitions here.
 
 

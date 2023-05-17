@@ -14,6 +14,8 @@ type KeyValue struct {
 	Value string
 }
 
+var workerId string
+
 //
 // use ihash(key) % NReduce to choose the reduce
 // task number for each KeyValue emitted by Map.
@@ -34,8 +36,11 @@ func Worker(mapf func(string, string) []KeyValue,
 	// Your worker implementation here.
 
 	// uncomment to send the Example RPC to the coordinator.
-	// CallExample()
-
+    id, err := CallRegister()
+    if err != nil {
+        log.Fatal("register error:", err)
+    }
+    fmt.Printf("worker %s registered\n", id)
 }
 
 //
@@ -58,8 +63,8 @@ func CallExample() {
 	// the "Coordinator.Example" tells the
 	// receiving server that we'd like to call
 	// the Example() method of struct Coordinator.
-	ok := call("Coordinator.Example", &args, &reply)
-	if ok {
+	err := call("Coordinator.Example", &args, &reply)
+	if err != nil {
 		// reply.Y should be 100.
 		fmt.Printf("reply.Y %v\n", reply.Y)
 	} else {
@@ -67,12 +72,23 @@ func CallExample() {
 	}
 }
 
+// register the worker with the coordinator
+func CallRegister() (string, error) {
+    args := RegisterArgs{}
+    reply := RegisterReply{}
+    err := call("Coordinator.Register", &args, &reply)
+    if err != nil {
+        return "", err
+    }
+    return reply.WorkerId, nil
+}
+
 //
 // send an RPC request to the coordinator, wait for the response.
 // usually returns true.
 // returns false if something goes wrong.
 //
-func call(rpcname string, args interface{}, reply interface{}) bool {
+func call(rpcname string, args interface{}, reply interface{}) error {
 	// c, err := rpc.DialHTTP("tcp", "127.0.0.1"+":1234")
 	sockname := coordinatorSock()
 	c, err := rpc.DialHTTP("unix", sockname)
@@ -83,9 +99,8 @@ func call(rpcname string, args interface{}, reply interface{}) bool {
 
 	err = c.Call(rpcname, args, reply)
 	if err == nil {
-		return true
+		return nil
 	}
 
-	fmt.Println(err)
-	return false
+	return err
 }
