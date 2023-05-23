@@ -1,6 +1,5 @@
 package mr
 
-import "fmt"
 import "log"
 import "net/rpc"
 import "hash/fnv"
@@ -14,7 +13,8 @@ type KeyValue struct {
 	Value string
 }
 
-var workerId string
+var workerId int
+var nReduce int
 
 //
 // use ihash(key) % NReduce to choose the reduce
@@ -36,52 +36,45 @@ func Worker(mapf func(string, string) []KeyValue,
 	// Your worker implementation here.
 
 	// uncomment to send the Example RPC to the coordinator.
-    id, err := CallRegister()
+    reply, err := CallRegister()
+    workerId = reply.WorkerId
     if err != nil {
         log.Fatal("register error:", err)
     }
-    fmt.Printf("worker %s registered\n", id)
-}
+    log.Printf("worker %d registered\n", reply.WorkerId)
+    log.Printf("mapping to %d map tasks\n", reply.NReduce)
 
-//
-// example function to show how to make an RPC call to the coordinator.
-//
-// the RPC argument and reply types are defined in rpc.go.
-//
-func CallExample() {
-
-	// declare an argument structure.
-	args := ExampleArgs{}
-
-	// fill in the argument(s).
-	args.X = 99
-
-	// declare a reply structure.
-	reply := ExampleReply{}
-
-	// send the RPC request, wait for the reply.
-	// the "Coordinator.Example" tells the
-	// receiving server that we'd like to call
-	// the Example() method of struct Coordinator.
-	err := call("Coordinator.Example", &args, &reply)
-	if err != nil {
-		// reply.Y should be 100.
-		fmt.Printf("reply.Y %v\n", reply.Y)
-	} else {
-		fmt.Printf("call failed!\n")
-	}
+    task, err := CallGetTask()
+    if err != nil {
+        log.Fatal("get task error:", err)
+    }
+    log.Printf("got task %d\n", task.Id)
 }
 
 // register the worker with the coordinator
-func CallRegister() (string, error) {
-    args := RegisterArgs{}
-    reply := RegisterReply{}
-    err := call("Coordinator.Register", &args, &reply)
+func CallRegister() (*RegisterReply, error) {
+    args := &RegisterArgs{}
+    reply := &RegisterReply{}
+    err := call("Coordinator.Register", args, reply)
     if err != nil {
-        return "", err
+        return reply, err
     }
-    return reply.WorkerId, nil
+    return reply, nil
 }
+
+func CallGetTask() (*GetTaskReply, error) {
+    args := &GetTaskArgs{
+        WorkerId: workerId,
+    }
+    reply := &GetTaskReply{}
+    err := call("Coordinator.GetTask", args, reply)
+    if err != nil {
+        return reply, err
+    }
+    return reply, nil
+}
+
+// call the coordinator to get the next task
 
 //
 // send an RPC request to the coordinator, wait for the response.

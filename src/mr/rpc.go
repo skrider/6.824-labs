@@ -26,11 +26,32 @@ type RegisterArgs struct {
 }
 
 type RegisterReply struct {
-    WorkerId string
+	WorkerId int
+	NReduce  int
+}
+
+type TaskType int
+
+const (
+	MapTask TaskType = iota
+	ReduceTask
+)
+
+type GetTaskArgs struct {
+	WorkerId int
+}
+
+type GetTaskReply struct {
+	Type       TaskType
+	InputPaths []string // for map tasks
+	Id         int
+}
+
+type CompleteTaskArgs struct {
+	TaskId int
 }
 
 // Add your RPC definitions here.
-
 
 // Cook up a unique-ish UNIX-domain socket name
 // in /var/tmp, for the coordinator.
