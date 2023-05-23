@@ -6,8 +6,11 @@ package mr
 // remember to capitalize all names.
 //
 
-import "os"
-import "strconv"
+import (
+	"fmt"
+	"os"
+	"strconv"
+)
 
 //
 // example to show how to declare the arguments
@@ -61,4 +64,12 @@ func coordinatorSock() string {
 	s := "/var/tmp/5840-mr-"
 	s += strconv.Itoa(os.Getuid())
 	return s
+}
+
+func intermediateName(mapTask int, reduceTask int) string {
+	return fmt.Sprintf("mr-temp-%d-%d", mapTask, reduceTask)
+}
+
+func reduceName(reduceTask int) string {
+	return fmt.Sprintf("mr-out-%d", reduceTask)
 }

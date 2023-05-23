@@ -1,7 +1,6 @@
 package mr
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -153,7 +152,7 @@ func MakeCoordinator(files []string, nReduce int) *Coordinator {
 		}
 		mapTasks[i] = task
 		for j, task := range reduceTasks {
-			task.inputPaths = append(task.inputPaths, fmt.Sprintf("mr-temp-%d-%d", i, j))
+			task.inputPaths = append(task.inputPaths, intermediateName(i, j))
 		}
 	}
 
