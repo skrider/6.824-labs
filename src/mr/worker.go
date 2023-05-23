@@ -52,18 +52,26 @@ func Worker(mapf func(string, string) []KeyValue,
 	log.Printf("mapping to %d reduce tasks\n", reply.NReduce)
     nReduce = reply.NReduce
 
-	task, err := CallGetTask()
-	if err != nil {
-		log.Fatal("get task error:", err)
-	}
-	log.Printf("got task %d\n", task.Id)
-
-	err = ExecuteMap(task.InputPaths[0], task.Id, mapf)
-	if err != nil {
-		log.Fatal("execute map error:", err)
-	}
-
-	log.Printf("completed map task %d\n", task.Id)
+    for {
+        task, err := CallGetTask()
+        if err != nil {
+            log.Printf("get task error: %v\n", err)
+        } else {
+            switch task.Type {
+            case MapTask:
+                log.Printf("got map task %d\n", task.Id)
+                err = ExecuteMap(task.InputPaths[0], task.Id, mapf)
+            case ReduceTask:
+                log.Printf("got reduce task %d\n", task.Id)
+                err = ExecuteReduce(task.InputPaths, task.Id, reducef)
+            }
+            if err != nil {
+                log.Printf("execute task error: %v\n", err)
+            } else {
+                err = CallCompleteTask(task.Id)
+            }
+        }
+    }
 }
 
 // register the worker with the coordinator
@@ -188,6 +196,14 @@ func ExecuteReduce(filenames []string, taskId int,
 
 	// rename temp file
 	return os.Rename(tmpFile.Name(), reduceName(taskId))
+}
+
+func CallCompleteTask(taskId int) error {
+	args := &CompleteTaskArgs{
+        TaskId: taskId,
+    }
+	reply := &struct{}{}
+	return call("Coordinator.CompleteTask", args, reply)
 }
 
 // call the coordinator to get the next task
